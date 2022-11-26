@@ -21,7 +21,7 @@ NUM_STEPS = 40000
 POWER = 0.9
 RANDOM_SEED = 12345
 RESTORE_FROM = os.path.join('pretrain', 'resnet101_base.pth')
-SAVE_PRED_EVERY = 100
+SAVE_PRED_EVERY = 5
 CKPT_DIR = 'checkpoints'
 WEIGHT_DECAY = 0.0005
 
