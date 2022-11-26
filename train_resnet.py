@@ -134,7 +134,7 @@ def main():
                             momentum=args.momentum, 
                             weight_decay=args.weight_decay)
     # data loader
-    train_loader = TrainDataset(shuffle=True)
+    train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
     optimizer.zero_grad()
     os.makedirs(args.snapshot_dir, exist_ok=True)
     

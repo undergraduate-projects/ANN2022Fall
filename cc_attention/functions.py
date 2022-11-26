@@ -26,7 +26,7 @@ class CrissCrossAttention(jt.Module):
         self.value_conv = nn.Conv2d(in_channels=in_dim, out_channels=in_dim, kernel_size=1)
         self.softmax = nn.Softmax(dim=3)
         self._INF = INF
-        self.gamma = nn.Parameter(jt.zeros(1))
+        self.gamma = jt.Var(jt.zeros(1)).start_grad()
     
     def execute(self, x):
         m_batchsize, _, height, width = x.size()
