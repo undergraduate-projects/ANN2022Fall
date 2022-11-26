@@ -3,7 +3,6 @@ import numpy as np
 import os
 from tqdm import tqdm
 
-from tensorboardX import SummaryWriter
 from loss.criterion import CriterionDSN, CriterionOhemDSN
 from dataset.ade_dataset import TrainDataset
 from networks.van import VAN
@@ -104,7 +103,8 @@ def main():
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
     optimizer.zero_grad()
-    os.makedirs(args.snapshot_dir, exist_ok=True)
+    ckpt_path = os.path.join(args.snapshot_dir, f"resnet-{args.recurrence}")
+    os.makedirs(ckpt_path, exist_ok=True)
     
     for epoch in tqdm(range(args.num_steps)):
         model.train()
@@ -119,7 +119,7 @@ def main():
 
         if epoch % args.save_pred_every == 0:
             print('taking snapshot ...')
-            jt.save(model.state_dict(), os.path.join(args.snapshot_dir, f"VAN-{epoch}.pth"))  
+            jt.save(model.state_dict(), os.path.join(ckpt_path, f"VAN-{epoch}.pth"))  
 
 if __name__ == '__main__':
     main()

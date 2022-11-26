@@ -28,7 +28,10 @@ Please download MIT imagenet pretrained [resnet101-imagenet.pth](http://scenepar
 Please download pytorch version pretrained [van_b2.pth](https://cloud.tsinghua.edu.cn/d/0100f0cea37d41ba8d08/) and store it at `pretrain/van_b2.pth`, then run `python3 edit_pretrain_van.py` to get `pretrain/van_b2_base.pth` for Jittor reloading.
 
 ## Run
-Run the following instruction, and the output log will be stored at `log/yyyymmdd_hhmmss.log` 
+### Training
+In order to train `xxx` model (`xxx` is either `resnet` or `van`), please run the following instruction, and the output log will be stored at `log/xxx/yyyymmdd_hhmmss.log` 
 ```
-./train.sh
+./train_xxx.sh
 ```
+
+In case of machine crash or remote disconnection, we recommend that you use `tmux` to execute training or testing.
