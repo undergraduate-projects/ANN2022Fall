@@ -14,53 +14,45 @@ IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 BATCH_SIZE = 1
 DATA_DIRECTORY = 'ADE20K'
 IGNORE_LABEL = 255
-NUM_CLASSES = 150
+NUM_CLASSES = 19
 NUM_STEPS = 40000
 RANDOM_SEED = 12345
 RESTORE_FROM = os.path.join('pretrain', 'van_b2_base.pth')
 SAVE_NUM_IMAGES = 2
-SAVE_PRED_EVERY = 10000
-SNAPSHOT_DIR = 'checkpoints'
+SAVE_PRED_EVERY = 100
+CKPT_DIR = 'checkpoints'
 LEARNING_RATE = 0.00006
-
+WEIGHT_DECAY = 0.01
 
 def get_parser():
-    parser = argparse.ArgumentParser(description="DeepLab-ResNet Network")
-    parser.add_argument("--batch-size", type=int, default=BATCH_SIZE,
+    parser = argparse.ArgumentParser(description="ResNet + CCNet Training")
+    parser.add_argument("--batch_size", type=int, default=BATCH_SIZE,
                         help="Number of images sent to the network in one step.")
-    parser.add_argument("--data-dir", type=str, default=DATA_DIRECTORY,
-                        help="Path to the directory containing the PASCAL VOC dataset.")
-    parser.add_argument("--ignore-label", type=int, default=IGNORE_LABEL,
+    parser.add_argument("--ignore_label", type=int, default=IGNORE_LABEL,
                         help="The index of the label to ignore during the training.")
-    parser.add_argument("--is-training", action="store_true",
-                        help="Whether to updates the running means and variances during the training.")
-    parser.add_argument("--not-restore-last", action="store_true",
-                        help="Whether to not restore last (FC) layers.")
-    parser.add_argument("--num-classes", type=int, default=NUM_CLASSES,
+    parser.add_argument("--learning_rate", type=float, default=LEARNING_RATE,
+                        help="Base learning rate for training with polynomial decay.")
+    parser.add_argument("--weight_decay", type=float, default=WEIGHT_DECAY,
+                        help="Regularisation parameter for L2-loss.")
+    parser.add_argument("--num_classes", type=int, default=NUM_CLASSES,
                         help="Number of classes to predict (including background).")
-    parser.add_argument("--start-iters", type=int, default=0,
-                        help="Number of classes to predict (including background).")
-    parser.add_argument("--num-steps", type=int, default=NUM_STEPS,
+    parser.add_argument("--num_steps", type=int, default=NUM_STEPS,
                         help="Number of training steps.")
-    parser.add_argument("--print-frequency", type=int, default=50,
-                        help="Number of training steps.") 
-    parser.add_argument("--random-seed", type=int, default=RANDOM_SEED,
+    parser.add_argument("--random_seed", type=int, default=RANDOM_SEED,
                         help="Random seed to have reproducible results.")
-    parser.add_argument("--restore-from", type=str, default=RESTORE_FROM,
+    parser.add_argument("--restore_from", type=str, default=RESTORE_FROM,
                         help="Where restore model parameters from.")
-    parser.add_argument("--save-num-images", type=int, default=SAVE_NUM_IMAGES,
-                        help="How many images to save.")
-    parser.add_argument("--save-pred-every", type=int, default=SAVE_PRED_EVERY,
+    parser.add_argument("--save_pred_every", type=int, default=SAVE_PRED_EVERY,
                         help="Save summaries and checkpoint every often.")
-    parser.add_argument("--snapshot-dir", type=str, default=SNAPSHOT_DIR,
+    parser.add_argument("--ckpt_dir", type=str, default=CKPT_DIR,
                         help="Where to save snapshots of the model.")
     parser.add_argument("--recurrence", type=int, default=2,
                         help="choose the number of recurrence.")
     parser.add_argument("--ohem", action="store_true",
                         help="use hard negative mining")
-    parser.add_argument("--ohem-thres", type=float, default=0.6,
+    parser.add_argument("--ohem_thres", type=float, default=0.6,
                         help="choose the samples with correct probability underthe threshold.")
-    parser.add_argument("--ohem-keep", type=int, default=200000,
+    parser.add_argument("--ohem_keep", type=int, default=200000,
                         help="choose the samples with correct probability underthe threshold.")
     return parser
 
@@ -75,6 +67,7 @@ def poly_lr_scheduler(opt, init_lr, iter, max_iter):
 def main():
     parser = get_parser()
     args = parser.parse_args()
+    print(args)
 
     seed = args.random_seed
     jt.set_seed(seed)
@@ -97,13 +90,13 @@ def main():
         model.load(args.restore_from)
 
     optimizer = jt.optim.AdamW(model.parameters(), 
-                                lr=LEARNING_RATE, 
+                                lr=args.learning_rate, 
                                 betas=(0.9, 0.999),
-                                weight_decay=0.01)
+                                weight_decay=args.weight_decay)
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
     optimizer.zero_grad()
-    ckpt_path = os.path.join(args.snapshot_dir, f"van-{args.recurrence}")
+    ckpt_path = os.path.join(args.ckpt_dir, f"van-{args.recurrence}")
     os.makedirs(ckpt_path, exist_ok=True)
     
     for epoch in tqdm(range(args.num_steps)):
@@ -118,7 +111,7 @@ def main():
             print('epoch: {}, iter: {}, loss: {}, lr: {}'.format(epoch, idx, loss, lr))
 
         if epoch % args.save_pred_every == 0:
-            print('taking snapshot ...')
+            print('store checkpoints ...')
             jt.save(model.state_dict(), os.path.join(ckpt_path, f"VAN-{epoch}.pth"))  
 
 if __name__ == '__main__':
