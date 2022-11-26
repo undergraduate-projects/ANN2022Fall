@@ -12,10 +12,10 @@ from jittor import nn
 
 
 def INF(B, H, W):
-    return -jt.diag(jt.var(jt.float32([float("inf")])).repeat(H), 0).unsqueeze(0).repeat(B * W, 1, 1)
+    return -jt.diag(jt.Var(float("inf")).repeat(H), 0).unsqueeze(0).repeat(B * W, 1, 1)
 
 
-class CrissCrossAttention(jt.Module):
+class CrissCrossAttention(nn.Module):
     """ Criss-Cross Attention Module """
     
     def __init__(self, in_dim):

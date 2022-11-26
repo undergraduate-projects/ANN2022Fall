@@ -11,7 +11,7 @@ import jittor as jt
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 DATA_DIRECTORY = 'ADE20K'
 IGNORE_LABEL = 255
 NUM_CLASSES = 150
@@ -54,7 +54,7 @@ def get_parser():
                         help="Save summaries and checkpoint every often.")
     parser.add_argument("--snapshot-dir", type=str, default=SNAPSHOT_DIR,
                         help="Where to save snapshots of the model.")
-    parser.add_argument("--recurrence", type=int, default=0,
+    parser.add_argument("--recurrence", type=int, default=2,
                         help="choose the number of recurrence.")
     parser.add_argument("--ohem", action="store_true",
                         help="use hard negative mining")

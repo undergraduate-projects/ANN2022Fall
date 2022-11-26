@@ -11,7 +11,7 @@ import jittor as jt
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
-BATCH_SIZE = 8
+BATCH_SIZE = 1
 DATA_DIRECTORY = 'ADE20K'
 IGNORE_LABEL = 255
 LEARNING_RATE = 1e-2
@@ -85,7 +85,7 @@ def get_parser():
                         help="choose model.")
     parser.add_argument("--num-workers", type=int, default=8,
                         help="choose the number of workers.")
-    parser.add_argument("--recurrence", type=int, default=0,
+    parser.add_argument("--recurrence", type=int, default=2,
                         help="choose the number of recurrence.")
 
     parser.add_argument("--ohem", type=str2bool, default='False',

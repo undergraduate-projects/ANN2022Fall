@@ -23,6 +23,9 @@ if [ ! -f $jittor_pretrained_model ]; then
 fi
 
 # check log directory
+if [ ! -d "log" ]; then
+    mkdir "log"
+fi
 log_dir="log/resnet"
 if [ ! -d $log_dir ]; then
     mkdir $log_dir
