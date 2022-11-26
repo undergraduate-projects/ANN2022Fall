@@ -10,7 +10,7 @@ ADE20K
 |-index_ad220k.pkl
 |-objects.txt
 ```
-You need to run `python3 edit-dataset.py` to generate data list for ADE20K dataset, after that the file structures will be:
+You need to run `python3 edit_dataset.py` to generate data list for ADE20K dataset, after that the file structures will be:
 ```
 ADE20K
 |-images/
