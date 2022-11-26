@@ -103,7 +103,7 @@ def main():
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
     optimizer.zero_grad()
-    ckpt_path = os.path.join(args.snapshot_dir, f"resnet-{args.recurrence}")
+    ckpt_path = os.path.join(args.snapshot_dir, f"van-{args.recurrence}")
     os.makedirs(ckpt_path, exist_ok=True)
     
     for epoch in tqdm(range(args.num_steps)):
