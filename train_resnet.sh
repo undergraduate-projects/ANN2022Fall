@@ -34,4 +34,4 @@ fi
 # name log file with date and time
 log_file=$log_dir"/$(date +%Y%m%d_%H%M%S).log"
 
-python3 train_resnet.py > $log_file 2>&1
+python3 train_resnet.py | tee $log_file
