@@ -12,7 +12,7 @@ import time
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
-BATCH_SIZE = 1
+BATCH_SIZE = 6
 DATA_DIRECTORY = 'ADE20K'
 IGNORE_LABEL = 255
 LEARNING_RATE = 1e-2
@@ -107,6 +107,7 @@ def main():
     for epoch in tqdm(range(args.num_steps)):
         for idx, (image, target) in enumerate(train_loader):
             lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * num_data + idx, args.num_steps * num_data)
+            image = image.float32()
             loss = model(image, target)
             optimizer.step(loss)
             if idx % 10 == 0:
