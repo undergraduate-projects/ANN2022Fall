@@ -7,6 +7,7 @@ from loss.criterion import CriterionDSN, CriterionOhemDSN
 from dataset.ade_dataset import TrainDataset
 from networks.ccnet import Seg_Model
 import jittor as jt
+import time
 
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
@@ -79,10 +80,10 @@ def main():
         jt.flags.use_cuda = 1
 
     # config network and criterion
-    if args.ohem:
-        criterion = CriterionOhemDSN(thresh=args.ohem_thres, min_kept=args.ohem_keep)
-    else:
-        criterion = CriterionDSN() #CriterionCrossEntropy()
+    # if args.ohem:
+    #     criterion = CriterionOhemDSN(thresh=args.ohem_thres, min_kept=args.ohem_keep)
+    # else:
+    criterion = CriterionDSN() #CriterionCrossEntropy()
 
     model = Seg_Model(
         num_classes=args.num_classes, criterion=criterion,
@@ -96,19 +97,21 @@ def main():
                             weight_decay=args.weight_decay)
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
-    optimizer.zero_grad()
     ckpt_path = os.path.join(args.ckpt_dir, f"resnet-{args.recurrence}")
     os.makedirs(ckpt_path, exist_ok=True)
     
+    start_time = time.time()
+    num_data = len(train_loader)
+    num_iter = num_data // args.batch_size
+    model.train()
     for epoch in tqdm(range(args.num_steps)):
-        model.train()
         for idx, (image, target) in enumerate(train_loader):
-            optimizer.zero_grad()
-            lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * len(train_loader) + idx, args.num_steps * len(train_loader))
-            image = image.float32()
+            lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * num_data + idx, args.num_steps * num_data)
             loss = model(image, target)
             optimizer.step(loss)
-            print('epoch: {}, iter: {}, loss: {}, lr: {}'.format(epoch, idx, loss, lr))
+            if idx % 10 == 0:
+                time_used = time.time() - start_time
+                print('epoch: {}/{}, iter: {}/{}, time: {} s, loss: {}, lr: {}'.format(epoch, args.num_steps, idx, num_iter, time_used, loss, lr))
 
         if epoch % args.save_pred_every == 0:
             print('store checkpoints ...')
