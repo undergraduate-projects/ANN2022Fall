@@ -102,16 +102,16 @@ def main():
     
     start_time = time.time()
     num_data = len(train_loader)
-    num_iter = num_data // args.batch_size
     model.train()
     for epoch in tqdm(range(args.num_steps)):
         for idx, (image, target) in enumerate(train_loader):
             lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * num_data + idx, args.num_steps * num_data)
+            image = image.float32()
             loss = model(image, target)
             optimizer.step(loss)
             if idx % 10 == 0:
                 time_used = time.time() - start_time
-                print('epoch: {}/{}, iter: {}/{}, time: {} s, loss: {}, lr: {}'.format(epoch, args.num_steps, idx, num_iter, time_used, loss, lr))
+                print('epoch: {}/{}, iter: {}/{}, time: {} s, loss: {}, lr: {}'.format(epoch, args.num_steps, idx, num_data, time_used, loss, lr))
 
         if epoch % args.save_pred_every == 0:
             print('store checkpoints ...')
