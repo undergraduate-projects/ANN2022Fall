@@ -5,11 +5,12 @@ from tqdm import tqdm
 
 from loss.criterion import CriterionDSN, CriterionOhemDSN
 from dataset.ade_dataset import TrainDataset
-from networks.ccnet import Seg_Model
+from networks.ccnet import ResNet, Bottleneck
 import jittor as jt
 import time
 
-IMG_MEAN = np.array((104.00698793, 116.66876762, 122.67891434), dtype=np.float32)
+
+IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
 BATCH_SIZE = 6
 DATA_DIRECTORY = 'ADE20K'
@@ -83,13 +84,23 @@ def main():
     # if args.ohem:
     #     criterion = CriterionOhemDSN(thresh=args.ohem_thres, min_kept=args.ohem_keep)
     # else:
-    criterion = CriterionDSN()  # CriterionCrossEntropy()
+    criterion = CriterionDSN() #CriterionCrossEntropy()
+
+    ckpt_path = os.path.join(args.ckpt_dir, f"resnet-{args.recurrence}")
+    os.makedirs(ckpt_path, exist_ok=True)
+    model = ResNet(Bottleneck,[3, 4, 23, 3], args.num_classes, criterion, args.recurrence)
     
-    model = Seg_Model(
-        num_classes=args.num_classes, criterion=criterion,
-        pretrained_model=args.restore_from, recurrence=args.recurrence
-    )
-    
+    ckpts = os.listdir(ckpt_path)
+    newest = 0
+    if len(ckpts) > 0: # try to load from checkpoints
+        newest = max([int(x.split("-")[1]) for x in ckpts])
+        newest_ckpt = os.path.join(ckpt_path, f"CCNet-{newest}.pth")
+        print(f"Loading checkpoint {newest_ckpt}")
+        model.load(os.path.join(ckpt_path, newest_ckpt))
+    else: # load from pretrained model
+        print(f"Loading pretrained model {args.restore_from}")
+        model.load(args.restore_from)
+
     # group weight and config optimizer
     optimizer = jt.optim.SGD(model.parameters(),
                              lr=args.learning_rate,
@@ -97,13 +108,11 @@ def main():
                              weight_decay=args.weight_decay)
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
-    ckpt_path = os.path.join(args.ckpt_dir, f"resnet-{args.recurrence}")
-    os.makedirs(ckpt_path, exist_ok=True)
     
     start_time = time.time()
     num_data = len(train_loader)
     model.train()
-    for epoch in tqdm(range(args.num_steps)):
+    for epoch in tqdm(range(newest, args.num_steps)):
         for idx, (image, target) in enumerate(train_loader):
             lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * num_data + idx, args.num_steps * num_data)
             image = image.float32()
@@ -111,9 +120,8 @@ def main():
             optimizer.step(loss)
             if idx % 10 == 0:
                 time_used = time.time() - start_time
-                print('epoch: {}/{}, iter: {}/{}, time: {} s, loss: {}, lr: {}'.format(epoch, args.num_steps, idx,
-                                                                                       num_data, time_used, loss, lr))
-        
+                print('epoch: {}/{}, iter: {}/{}, time: {} s, loss: {}, lr: {}'.format(epoch, args.num_steps, idx, num_data, time_used, loss, lr))
+
         if epoch % args.save_pred_every == 0:
             print('store checkpoints ...')
             jt.save(model.state_dict(), os.path.join(ckpt_path, f"CCNet-{epoch}.pth"))
