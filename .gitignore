@@ -217,3 +217,4 @@ ADE20K/
 ADE20K_2021_17_01.zip
 test.ipynb
 pretrain/
+checkpoints/

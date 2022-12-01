@@ -12,7 +12,7 @@ import time
 
 IMG_MEAN = np.array((104.00698793,116.66876762,122.67891434), dtype=np.float32)
 
-BATCH_SIZE = 6
+BATCH_SIZE = 1
 DATA_DIRECTORY = 'ADE20K'
 IGNORE_LABEL = 255
 LEARNING_RATE = 1e-2
@@ -93,10 +93,10 @@ def main():
     ckpts = os.listdir(ckpt_path)
     newest = 0
     if len(ckpts) > 0: # try to load from checkpoints
-        newest = max([int(x.split("-")[1]) for x in ckpts])
-        newest_ckpt = os.path.join(ckpt_path, f"CCNet-{newest}.pth")
+        newest = max([int(x.split("-")[1].split(".")[0]) for x in ckpts])
+        newest_ckpt = os.path.join(ckpt_path, f"CCNet-{newest}.pkl")
         print(f"Loading checkpoint {newest_ckpt}")
-        model.load(os.path.join(ckpt_path, newest_ckpt))
+        model.load(newest_ckpt)
     else: # load from pretrained model
         print(f"Loading pretrained model {args.restore_from}")
         model.load(args.restore_from)
@@ -124,7 +124,7 @@ def main():
 
         if epoch % args.save_pred_every == 0:
             print('store checkpoints ...')
-            jt.save(model.state_dict(), os.path.join(ckpt_path, f"CCNet-{epoch}.pth"))
+            model.save(os.path.join(ckpt_path, f"CCNet-{epoch}.pkl"))
 
 
 if __name__ == '__main__':
