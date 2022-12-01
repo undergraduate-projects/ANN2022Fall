@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 from loss.criterion import CriterionDSN, CriterionOhemDSN
 from dataset.ade_dataset import TrainDataset
-from networks.ccnet import Seg_Model
+from networks.ccnet import ResNet, Bottleneck
 import jittor as jt
 import time
 
@@ -85,10 +85,20 @@ def main():
     # else:
     criterion = CriterionDSN() #CriterionCrossEntropy()
 
-    model = Seg_Model(
-        num_classes=args.num_classes, criterion=criterion,
-        pretrained_model=args.restore_from, recurrence=args.recurrence
-    )
+    ckpt_path = os.path.join(args.ckpt_dir, f"resnet-{args.recurrence}")
+    os.makedirs(ckpt_path, exist_ok=True)
+    model = ResNet(Bottleneck,[3, 4, 23, 3], args.num_classes, criterion, args.recurrence)
+    
+    ckpts = os.listdir(ckpt_path)
+    newest = 0
+    if len(ckpts) > 0: # try to load from checkpoints
+        newest = max([int(x.split("-")[1]) for x in ckpts])
+        newest_ckpt = os.path.join(ckpt_path, f"CCNet-{newest}.pth")
+        print(f"Loading checkpoint {newest_ckpt}")
+        model.load(os.path.join(ckpt_path, newest_ckpt))
+    else: # load from pretrained model
+        print(f"Loading pretrained model {args.restore_from}")
+        model.load(args.restore_from)
 
     # group weight and config optimizer
     optimizer = jt.optim.SGD(model.parameters(),
@@ -97,13 +107,11 @@ def main():
                             weight_decay=args.weight_decay)
     # data loader
     train_loader = TrainDataset(shuffle=True, batch_size=args.batch_size)
-    ckpt_path = os.path.join(args.ckpt_dir, f"resnet-{args.recurrence}")
-    os.makedirs(ckpt_path, exist_ok=True)
     
     start_time = time.time()
     num_data = len(train_loader)
     model.train()
-    for epoch in tqdm(range(args.num_steps)):
+    for epoch in tqdm(range(newest, args.num_steps)):
         for idx, (image, target) in enumerate(train_loader):
             lr = poly_lr_scheduler(optimizer, args.learning_rate, epoch * num_data + idx, args.num_steps * num_data)
             image = image.float32()
