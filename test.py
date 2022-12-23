@@ -77,34 +77,44 @@ def pad_image(img, target_size):
 def predict_sliding(net, image, tile_size, classes, flip_evaluation, recurrence):
     interp = nn.Upsample(mode='bilinear')
     image_size = image.shape
-    overlap = (1 / 3)
-    stride = ceil((tile_size[0] * (1 - overlap)))
-    tile_rows = int((ceil(((image_size[2] - tile_size[0]) / stride)) + 1))
-    tile_cols = int((ceil(((image_size[3] - tile_size[1]) / stride)) + 1))
-    print(('Need %i x %i prediction tiles @ stride %i px' % (tile_cols, tile_rows, stride)))
+    overlap = 1 / 3
+    
+    stride = ceil(tile_size[0] * (1 - overlap))
+    tile_rows = int(ceil((image_size[2] - tile_size[0]) / stride) + 1)  # strided convolution formula
+    tile_cols = int(ceil((image_size[3] - tile_size[1]) / stride) + 1)
+    print("Need %i x %i prediction tiles @ stride %i px" % (tile_cols, tile_rows, stride))
     full_probs = np.zeros((image_size[2], image_size[3], classes))
     count_predictions = np.zeros((image_size[2], image_size[3], classes))
     tile_counter = 0
+
     for row in range(tile_rows):
         for col in range(tile_cols):
-            x1 = int((col * stride))
-            y1 = int((row * stride))
-            x2 = min((x1 + tile_size[1]), image_size[3])
-            y2 = min((y1 + tile_size[0]), image_size[2])
-            x1 = max(int((x2 - tile_size[1])), 0)
-            y1 = max(int((y2 - tile_size[0])), 0)
+            x1 = int(col * stride)
+            y1 = int(row * stride)
+            x2 = min(x1 + tile_size[1], image_size[3])
+            y2 = min(y1 + tile_size[0], image_size[2])
+            x1 = max(int(x2 - tile_size[1]), 0)  # for portrait images the x1 underflows sometimes
+            y1 = max(int(y2 - tile_size[0]), 0)  # for very few rows y1 underflows
+            
             img = image[:, :, y1:y2, x1:x2]
             padded_img = pad_image(img, tile_size)
+            # plt.imshow(padded_img)
+            # plt.show()
             tile_counter += 1
-            print(('Predicting tile %i' % tile_counter))
+            print("Predicting tile %i" % tile_counter)
             padded_prediction = net(Variable(torch.from_numpy(padded_img), volatile=True).cuda(), recurrence)
             if isinstance(padded_prediction, list):
                 padded_prediction = padded_prediction[0]
             padded_prediction = interp(padded_prediction).cpu().data[0].numpy().transpose(1, 2, 0)
             prediction = padded_prediction[0:img.shape[2], 0:img.shape[3], :]
             count_predictions[y1:y2, x1:x2] += 1
-            full_probs[y1:y2, x1:x2] += prediction
+            full_probs[y1:y2, x1:x2] += prediction  # accumulate the predictions also in the overlapping regions
+    
+    # average the predictions in the overlapping regions
     full_probs /= count_predictions
+    # visualize normalization Weights
+    # plt.imshow(np.mean(count_predictions, axis=2))
+    # plt.show()
     return full_probs
 
 def predict_whole(net, image, tile_size, flip_evaluation, recurrence):
@@ -118,18 +128,18 @@ def predict_whole(net, image, tile_size, flip_evaluation, recurrence):
 def id2trainId(label, id_to_trainid, reverse=False):
     label_copy = label.copy()
     if reverse:
-        for (v, k) in id_to_trainid.items():
-            label_copy[(label == k)] = v
+        for v, k in id_to_trainid.items():
+            label_copy[label == k] = v
     else:
-        for (k, v) in id_to_trainid.items():
-            label_copy[(label == k)] = v
+        for k, v in id_to_trainid.items():
+            label_copy[label == k] = v
     return label_copy
 
 def main():
     """Create the model and start the evaluation process."""
     args = get_arguments()
     
-    #gpu0 = args.gpu
+    # gpu0 = args.gpu
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     (h, w) = map(int, args.input_size.split(','))
     if args.whole:
@@ -137,24 +147,34 @@ def main():
     else:
         input_size = (h, w)
     ignore_label = args.ignore_label
+    
     model = ResNet(Bottleneck,[3, 4, 23, 3], args.num_classes, criterion, args.recurrence)
+    
     saved_state_dict = model.load(args.restore_from)
     model.load_parameters(saved_state_dict)
+    
     model.eval()
     model.cuda()
+    
     testloader = data.DataLoader(TrainDataset(args.data_dir, args.data_list, crop_size=(1024, 2048), mean=IMG_MEAN), batch_size=1, shuffle=False, pin_memory=True)
+    
     data_list = []
     confusion_matrix = np.zeros((args.num_classes, args.num_classes))
     palette = get_palette(256)
-    id_to_trainid = {(- 1): ignore_label, 0: ignore_label, 1: ignore_label, 2: ignore_label, 3: ignore_label, 4: ignore_label, 5: ignore_label, 6: ignore_label, 7: 0, 8: 1, 9: ignore_label, 10: ignore_label, 11: 2, 12: 3, 13: 4, 14: ignore_label, 15: ignore_label, 16: ignore_label, 17: 5, 18: ignore_label, 19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12, 26: 13, 27: 14, 28: 15, 29: ignore_label, 30: ignore_label, 31: 16, 32: 17, 33: 18}
+    id_to_trainid = {-1: ignore_label, 0: ignore_label, 1: ignore_label, 2: ignore_label,
+                  3: ignore_label, 4: ignore_label, 5: ignore_label, 6: ignore_label,
+                  7: 0, 8: 1, 9: ignore_label, 10: ignore_label, 11: 2, 12: 3, 13: 4,
+                  14: ignore_label, 15: ignore_label, 16: ignore_label, 17: 5,
+                  18: ignore_label, 19: 6, 20: 7, 21: 8, 22: 9, 23: 10, 24: 11, 25: 12, 26: 13, 27: 14,
+                  28: 15, 29: ignore_label, 30: ignore_label, 31: 16, 32: 17, 33: 18}
     interp = nn.Upsample(mode='bilinear')
     
-    if (not os.path.exists('outputs')):
+    if not os.path.exists('outputs'):
         os.makedirs('outputs')
     
     for (index, batch) in enumerate(testloader):
-        if ((index % 100) == 0):
-            print(('%d processd' % index))
+        if index % 100 == 0:
+            print('%d processd' % (index))
         (image, size, name) = batch
         size = size[0].numpy()
         with torch.no_grad():
@@ -167,7 +187,7 @@ def main():
         seg_pred = id2trainId(seg_pred, id_to_trainid, reverse=True)
         output_im = PILImage.fromarray(seg_pred)
         output_im.putpalette(palette)
-        output_im.save((('outputs/' + name[0]) + '.png'))
+        output_im.save(('outputs/' + name[0]) + '.png')
         
         
 if __name__ == '__main__':
