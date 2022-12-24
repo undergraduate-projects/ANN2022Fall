@@ -192,7 +192,7 @@ class TrainDataset(BaseDataset):
 
 
 class ValDataset(BaseDataset):
-    def __init__(self, data_root="ADE20K", split='training', batch_size=1, shuffle=False):
+    def __init__(self, data_root="ADE20K", split='validation', batch_size=1, shuffle=False):
         super(ValDataset, self).__init__(data_root, split, batch_size, shuffle)
         
     def __getitem__(self, image_id):
