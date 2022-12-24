@@ -200,6 +200,10 @@ class ValDataset(BaseDataset):
         label_path = self.label_path[image_id]
 
         image, label = fetch(image_path, label_path)
+        image, label = scale(image, label)
+        image, label = pad(image, label)
+        image, label = crop(image, label)
+        image, label = flip(image, label)
         image, label = normalize(image, label)
 
         image = np.array(image).astype(np.float).transpose(2, 0, 1)
